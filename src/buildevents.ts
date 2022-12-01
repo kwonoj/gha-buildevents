@@ -10,17 +10,27 @@ import * as util from './util'
 export async function install(apikey: string, dataset: string): Promise<void> {
   core.info('Downloading and installing buildevents')
 
-  const url = 'https://github.com/honeycombio/buildevents/releases/latest/download/' + util.constructExecutableName()
+  const baseUrl =
+    process.platform === 'win32'
+      ? 'https://github.com/kwonoj/gha-buildevents/releases/download/buildevents_49e7087/'
+      : 'https://github.com/honeycombio/buildevents/releases/latest/download/'
+
+  const url = baseUrl + util.constructExecutableName()
   core.info(`Downloading from ${url}`)
 
   const downloadPath = await tc.downloadTool(url)
 
   // rename downloaded binary - downloadPath is similar to a UUID by default
-  const toolPath = path.join(path.dirname(downloadPath), 'buildevents')
+  const toolPath = path.join(
+    path.dirname(downloadPath),
+    process.platform === 'win32' ? 'buildevents.exe' : 'buildevents'
+  )
   await io.mv(downloadPath, toolPath)
 
   // make exectuable and add to path
-  await exec.exec(`chmod +x ${toolPath}`)
+  if (process.platform !== 'win32') {
+    await exec.exec(`chmod +x ${toolPath}`)
+  }
   core.addPath(path.dirname(toolPath))
 
   util.setEnv('BUILDEVENT_APIKEY', apikey)
